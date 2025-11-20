@@ -658,7 +658,7 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
                   children: [
                     // [되돌리기 버튼]
                     IconButton(
-                      icon: Icon(Icons.undo, color: Colors.white, size: 50 * fontScale),
+                      icon: Icon(Icons.undo, color: Colors.white, size: 40 * fontScale),
                       onPressed: _undoLastAction,
                       tooltip: '실행취소',
                     ),

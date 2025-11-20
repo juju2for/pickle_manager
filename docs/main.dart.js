@@ -81320,8 +81320,8 @@ n=B.c.ef(n.a.a*0.4,180,300)
 l=t.E
 s=A.asI(A.oK(A.c([A.cr(""+p.CW,o,o,o,A.cy(o,o,B.ty,o,o,o,o,o,o,o,o,32*p.y,o,o,B.aO,o,o,!0,o,o,o,o,o,o,o,o),o,o),new A.cF(B.mH,A.cr("SET "+p.ch,o,o,o,A.cy(o,o,B.k,o,o,o,o,o,o,o,o,18*p.y,o,o,B.aO,o,o,!0,o,o,o,o,o,o,o,o),o,o),o),A.cr(""+p.cx,o,o,o,A.cy(o,o,B.ty,o,o,o,o,o,o,o,o,32*p.y,o,o,B.aO,o,o,!0,o,o,o,o,o,o,o,o),o,o)],l),B.ap,B.hd,B.bp),B.Aa)
 r=A.cr(""+p.at,o,o,o,A.cy(o,o,B.k,o,o,o,o,o,o,o,o,120*p.y,o,o,B.aO,o,1,!0,o,o,o,o,o,o,o,o),o,o)
-q=50*p.y
-n=A.ql(A.ju(A.c([s,r,A.oK(A.c([A.aoN(o,A.a11(B.EU,B.k,o,q),o,o,p.gad8(),o,o,"\uc2e4\ud589\ucde8\uc18c"),A.aoN(o,A.a11(B.ET,B.k,o,q),o,o,p.ga9G(),o,o,"\uc124\uc815")],l),B.ap,B.k2,B.bp)],l),B.ap,B.k1,B.bp),B.F,B.J,o,o,o,B.Ec,n)
+q=p.y
+n=A.ql(A.ju(A.c([s,r,A.oK(A.c([A.aoN(o,A.a11(B.EU,B.k,o,40*q),o,o,p.gad8(),o,o,"\uc2e4\ud589\ucde8\uc18c"),A.aoN(o,A.a11(B.ET,B.k,o,50*q),o,o,p.ga9G(),o,o,"\uc124\uc815")],l),B.ap,B.k2,B.bp)],l),B.ap,B.k1,B.bp),B.F,B.J,o,o,o,B.Ec,n)
 q=p.w
 r=p.as
 return new A.yY(A.oK(A.c([m,n,A.Ho(p.JU(B.Jd,p.ax==="B",new A.ak4(p),new A.ak5(p),r,q),1)],l),B.ap,B.at,B.bp),o)},
