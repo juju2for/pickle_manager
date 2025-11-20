@@ -1,0 +1,85 @@
+https://github.com/juju2for/pickle_manager.git
+
+
+0. 준비물: 저장소(Repository) 만들기
+먼저 코드를 올릴 '창고'를 웹에 하나 만들어야 합니다. (GitHub 기준)
+
+GitHub.com 로그인.
+
+우측 상단 + 버튼 -> New repository.
+
+Repository name에 pickle_score 입력.
+
+[Create repository] 클릭.
+
+화면에 나오는 주소 https://github.com/아이디/pickle_score.git 복사해 두세요.
+
+1. 첫 세팅 (내 PC → 깃허브 연결)
+지금 작업 중인 폴더(C:\pickle_manager라고 가정)에서 VS Code 터미널을 열고 딱 한 번만 입력하세요.
+
+Bash
+
+# 1. 깃 시작 선언
+git init
+
+# 2. 모든 파일 장바구니 담기 (이때 .gitignore 덕분에 쓰레기 파일은 자동 제외됨)
+git add .
+
+# 3. 사진 찍기 (커밋)
+git commit -m "first commit"
+
+# 4. 메인 브랜치 이름 정리
+git branch -M main
+
+# 5. 아까 복사한 주소 연결 (본인 주소로 바꾸세요!)
+git remote add origin https://github.com/본인아이디/pickle_score.git
+
+# 6. 업로드 (이때 로그인 창 뜨면 'Browser'로 로그인 선택)
+git push -u origin main
+(이제 깃허브 웹페이지 새로고침 해보시면 코드가 올라가 있을 겁니다.)
+
+2. 작업 후 퇴근할 때 (업데이트 = Push)
+코드를 수정하고 나서 서버에 저장하는 방법입니다.
+
+[방법 A: 터미널 (빠름)]
+
+Bash
+
+git add .
+git commit -m "점수판 로직 수정"
+git push
+[방법 B: VS Code 왼쪽 메뉴 (마우스)]
+
+왼쪽 가지 모양 아이콘(Source Control) 클릭.
+
+Message 칸에 "버그 수정" 입력.
+
+[Commit] (또는 체크 표시) 버튼 클릭.
+
+버튼이 **[Sync Changes]**로 바뀌면 클릭 (이게 Push입니다).
+
+3. 다른 PC(사무실)에 처음 설치할 때
+새로운 PC에 갔을 때는 폴더를 만들지 말고 바로 다운로드 받습니다.
+
+폴더를 만들고 싶은 곳(예: C:\Work)에서 터미널 열기.
+
+다운로드:
+
+Bash
+
+git clone https://github.com/본인아이디/pickle_score.git
+폴더 들어가서 실행:
+
+Bash
+
+cd pickle_score
+flutter run -d chrome
+4. 출근해서 작업 시작할 때 (다운로드 = Pull)
+집에서 작업하고 사무실 왔으면, 최신 코드를 받아와야겠죠?
+
+[방법 A: 터미널]
+
+Bash
+
+git pull
+[방법 B: VS Code] 왼쪽 하단에 있는 **새로고침 아이콘(순환 화살표)**을 누르거나, 왼쪽 Source Control 탭의 [...] -> Pull 선택.
