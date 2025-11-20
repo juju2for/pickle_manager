@@ -1,7 +1,7 @@
 {
     "name": "pickle_manager",
     "short_name": "pickle_manager",
-    "start_url": ".",
+    "start_url": "/",
     "scope": ".",
     "display": "standalone",
     "background_color": "#0175C2",
