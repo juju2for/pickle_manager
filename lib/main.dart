@@ -56,6 +56,7 @@ class ScoreBoardPage extends StatefulWidget {
 class _ScoreBoardPageState extends State<ScoreBoardPage> {
   // === [TTS] TTS 관련 변수 및 메서드 ===
   final FlutterTts flutterTts = FlutterTts();
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -68,6 +69,7 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
   @override
   void dispose() {
     flutterTts.stop();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -81,8 +83,7 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
 
   void _playSoundEffect() {
     if (!_isVoiceEnabled) return;
-    final player = AudioPlayer();
-    player.play(AssetSource('sounds/sideout.mp3'));
+    _audioPlayer.play(AssetSource('sounds/sideout.mp3'));
   }
 
   bool _isVoiceEnabled = true; // 음성 안내 기능 활성화 여부
@@ -406,129 +407,192 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
   }
 
 
-  // === [UI] 설정 팝업창 띄우기 ===
+    // === [UI] 새로운 설정 팝업 ===
   void _openSettingsDialog() {
-    // 현재 값을 컨트롤러에 담아 팝업에 전달
-    TextEditingController nameACtrl = TextEditingController(text: teamAName);
-    TextEditingController nameBCtrl = TextEditingController(text: teamBName);
+    // 임시 변수: 사용자가 '새 게임'을 누르기 전까지의 설정값
+    String tempTeamAName = teamAName;
+    String tempTeamBName = teamBName;
+    double tempFontScale = fontScale;
+    int tempTotalSets = totalSets;
     int tempTargetScore = targetScore;
-    int tempTotalSets = totalSets; // 임시 총 세트
-    double tempFontScale = fontScale; // 임시 글자 크기 배율
+    final view = View.of(context);
+    bool isFullScreen =
+        (MediaQuery.of(context).size.width == view.physicalSize.width / view.devicePixelRatio) &&
+        (MediaQuery.of(context).size.height == view.physicalSize.height / view.devicePixelRatio);
+
 
     showDialog(
       context: context,
       builder: (context) {
-        // 팝업 내부에서 상태 변경(Dropdown 등)을 위해 StatefulBuilder 사용
         return StatefulBuilder(
           builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: const Text('게임 시작'),
-              content: SingleChildScrollView( // 내용이 길어질 수 있으므로 스크롤 추가
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+            final Widget leftSide = Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.fullscreen),
+                  title: const Text('전체화면'),
+                  onTap: () {
+                    setStateDialog(() {
+                      isFullScreen = !isFullScreen;
+                    });
+                    if (isFullScreen) {
+                      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+                    } else {
+                      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: Icon(_isVoiceEnabled ? Icons.volume_up : Icons.volume_off),
+                  title: const Text('음성'),
+                  onTap: () {
+                    setState(() {
+                      _isVoiceEnabled = !_isVoiceEnabled;
+                    });
+                    setStateDialog(() {}); // 아이콘 변경을 위해 팝업만 리빌드
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.history),
+                  title: const Text('경기기록'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showHistoryDialog();
+                  },
+                ),
+              ],
+            );
+
+            final Widget rightSide = Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  initialValue: tempTeamAName,
+                  decoration: const InputDecoration(labelText: '팀 A 이름'),
+                  onChanged: (value) => tempTeamAName = value,
+                ),
+                TextFormField(
+                  initialValue: tempTeamBName,
+                  decoration: const InputDecoration(labelText: '팀 B 이름'),
+                  onChanged: (value) => tempTeamBName = value,
+                ),
+                const SizedBox(height: 20),
+                Row(
                   children: [
-                    // Team A 이름 입력
-                    TextField(
-                      controller: nameACtrl,
-                      decoration: const InputDecoration(labelText: '왼쪽 팀 이름'),
+                    const Text('글자 크기:'),
+                    Expanded(
+                      child: Slider(
+                        value: tempFontScale,
+                        min: 0.5,
+                        max: 2.5,
+                        divisions: 20,
+                        label: tempFontScale.toStringAsFixed(1),
+                        onChanged: (value) {
+                          setStateDialog(() {
+                            tempFontScale = value;
+                          });
+                        },
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    // Team B 이름 입력
-                    TextField(
-                      controller: nameBCtrl,
-                      decoration: const InputDecoration(labelText: '오른쪽 팀 이름'),
-                    ),
-                    const SizedBox(height: 20),
-                    // 목표 점수 선택 (Dropdown)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('목표 점수:'),
-                        DropdownButton<int>(
-                          value: tempTargetScore,
-                          items: [7, 11, 15, 21].map((score) {
-                            return DropdownMenuItem(
-                              value: score,
-                              child: Text('$score점'),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              // 팝업 내부 UI 갱신
-                              setStateDialog(() {
-                                tempTargetScore = value;
-                              });
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                    // 총 세트 수 선택 (Dropdown)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('총 세트:'),
-                        DropdownButton<int>(
-                          value: tempTotalSets,
-                          items: [1, 3, 5].map((sets) {
-                            return DropdownMenuItem(
-                              value: sets,
-                              child: Text('$sets세트'),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              // 팝업 내부 UI 갱신
-                              setStateDialog(() {
-                                tempTotalSets = value;
-                              });
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    // 글자 크기 조절 슬라이더
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('글자 크기:'),
-                        Text('${(tempFontScale * 100).toStringAsFixed(0)}%'),
-                      ],
-                    ),
-                    Slider(
-                      value: tempFontScale,
-                      min: 0.5, // 50%
-                      max: 3.0, // 300% (상향)
-                      divisions: 25, // (3.0-0.5)*10
-                      onChanged: (value) {
+                  ],
+                ),
+                Row(
+                  children: [
+                    const Text('세트 설정:'),
+                    const SizedBox(width: 20),
+                    DropdownButton<int>(
+                      value: tempTotalSets,
+                      items: [1, 3, 5, 7, 9].map((int value) {
+                        return DropdownMenuItem<int>(
+                          value: value,
+                          child: Text('$value 세트'),
+                        );
+                      }).toList(),
+                      onChanged: (newValue) {
                         setStateDialog(() {
-                          tempFontScale = value;
+                          tempTotalSets = newValue!;
                         });
                       },
                     ),
                   ],
                 ),
+                Row(
+                  children: [
+                    const Text('세트 점수:'),
+                    const SizedBox(width: 20),
+                    DropdownButton<int>(
+                      value: tempTargetScore,
+                      items: [7, 11, 21].map((int value) {
+                        return DropdownMenuItem<int>(
+                          value: value,
+                          child: Text('$value 점'),
+                        );
+                      }).toList(),
+                      onChanged: (newValue) {
+                        setStateDialog(() {
+                          tempTargetScore = newValue!;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            );
+
+            return AlertDialog(
+              title: Text('설정', style: TextStyle(fontSize: 22 * fontScale)),
+              content: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.8, // 너비 확장
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth < 500) { // 좁은 화면용 레이아웃
+                      return SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            leftSide,
+                            const Divider(height: 20),
+                            rightSide,
+                          ],
+                        ),
+                      );
+                    } else { // 넓은 화면용 레이아웃
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: leftSide,
+                          ),
+                          const VerticalDivider(),
+                          Expanded(
+                            flex: 2,
+                            child: rightSide,
+                          ),
+                        ],
+                      );
+                    }
+                  },
+                ),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('취소'),
+                  child: Text('닫기', style: TextStyle(fontSize: 16 * fontScale)),
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // 메인 화면 상태 업데이트
                     setState(() {
-                      teamAName = nameACtrl.text;
-                      teamBName = nameBCtrl.text;
+                      teamAName = tempTeamAName;
+                      teamBName = tempTeamBName;
+                      fontScale = tempFontScale;
+                      totalSets = tempTotalSets;
                       targetScore = tempTargetScore;
-                      totalSets = tempTotalSets; // 총 세트 수 저장
-                      fontScale = tempFontScale; // 글자 크기 배율 저장
                     });
-                    _resetGame(); // 설정이 바뀌면 게임을 리셋
                     Navigator.pop(context);
+                    _resetGame();
                   },
-                  child: const Text('저장 및 새 게임'),
+                  child: Text('새 게임', style: TextStyle(fontSize: 16 * fontScale)),
                 ),
               ],
             );
@@ -538,24 +602,10 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
     );
   }
 
-  bool _isFullScreen = false;
-
-  void _toggleFullScreen() {
-    setState(() {
-      _isFullScreen = !_isFullScreen;
-    });
-    if (_isFullScreen) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    } else {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     // 화면 너비에 따라 중앙 패널 너비 동적 조절
     final screenWidth = MediaQuery.of(context).size.width;
-    final centerPanelWidth = (screenWidth * 0.18).clamp(90.0, 150.0);
 
     return Scaffold(
       body: Row(
@@ -574,89 +624,54 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
 
           // --- [중앙: 정보 표시줄] ---
           Container(
-            width: centerPanelWidth,
+            width: (screenWidth * 0.4).clamp(180.0, 300.0), // 너비 대폭 확장
             color: Colors.black87,
-            padding: const EdgeInsets.symmetric(vertical: 8.0), // Add some vertical padding
-            child: FittedBox(
-              fit: BoxFit.contain,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // [설정 버튼]
-                  _buildCentralPanelButton(
-                    icon: Icons.play_arrow,
-                    label: '시작',
-                    onPressed: _openSettingsDialog,
-                  ),
-                  const SizedBox(height: 16),
-                  // [기록 버튼]
-                  _buildCentralPanelButton(
-                    icon: Icons.history,
-                    label: '기록',
-                    onPressed: _showHistoryDialog,
-                  ),
-                  const SizedBox(height: 24),
-                  // [세트 스코어]
-                  Column(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceAround, // 버튼 간격 균등 배분
+              children: [
+                // [세트 스코어] - 한 줄로 변경
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('$winsA', style: TextStyle(color: Colors.blue, fontSize: 28 * fontScale, fontWeight: FontWeight.bold)),
+                      Text('$winsA', style: TextStyle(color: Colors.amber, fontSize: 32 * fontScale, fontWeight: FontWeight.bold)),
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Text('SET ${currentSet}', style: TextStyle(color: Colors.white, fontSize: 14 * fontScale, fontWeight: FontWeight.bold)),
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Text('SET $currentSet', style: TextStyle(color: Colors.white, fontSize: 18 * fontScale, fontWeight: FontWeight.bold)),
                       ),
-                      Text('$winsB', style: TextStyle(color: Colors.red, fontSize: 28 * fontScale, fontWeight: FontWeight.bold)),
+                      Text('$winsB', style: TextStyle(color: Colors.amber, fontSize: 32 * fontScale, fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  // [서버 순서]
-                  Column(
-                    children: [
-                      Text('SERVER', style: TextStyle(color: Colors.grey, fontSize: 12 * fontScale)),
-                      const SizedBox(height: 5),
-                      CircleAvatar(
-                        backgroundColor: Colors.amber,
-                        radius: 24 * fontScale,
-                        child: Text(
-                          '$serverSequence',
-                          style: TextStyle(fontSize: 28 * fontScale, fontWeight: FontWeight.bold, color: Colors.black),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  // [전체화면 토글 버튼]
-                  _buildCentralPanelButton(
-                    icon: _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                    label: '전체화면',
-                    onPressed: _toggleFullScreen,
-                  ),
-                  const SizedBox(height: 16),
-                  // [음성 토글 버튼]
-                  _buildCentralPanelButton(
-                    icon: _isVoiceEnabled ? Icons.volume_up : Icons.volume_off,
-                    label: '음성',
-                    onPressed: () {
-                      setState(() {
-                        _isVoiceEnabled = !_isVoiceEnabled;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // [되돌리기 버튼]
-                  _buildCentralPanelButton(
-                    icon: Icons.undo,
-                    label: '실행취소',
-                    onPressed: _undoLastAction,
-                  ),
-                  const SizedBox(height: 16),
-                  // [리셋 버튼]
-                  _buildCentralPanelButton(
-                    icon: Icons.refresh,
-                    label: '리셋',
-                    onPressed: _resetGame,
-                  ),
-                ],
-              ),
+                ),
+
+                // [서버 순서] - 크게
+                Text(
+                  '$serverSequence',
+                  style: TextStyle(fontSize: 120 * fontScale, fontWeight: FontWeight.bold, color: Colors.white, height: 1.0),
+                ),
+
+                // [아이콘 버튼들]
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // [되돌리기 버튼]
+                    IconButton(
+                      icon: Icon(Icons.undo, color: Colors.white, size: 50 * fontScale),
+                      onPressed: _undoLastAction,
+                      tooltip: '실행취소',
+                    ),
+
+                    // [설정 버튼]
+                    IconButton(
+                      icon: Icon(Icons.settings, color: Colors.white, size: 50 * fontScale),
+                      onPressed: _openSettingsDialog, // 새로운 설정 팝업 호출
+                      tooltip: '설정',
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
 
@@ -676,25 +691,6 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
     );
   }
 
-  // 중앙 패널 버튼 위젯
-  Widget _buildCentralPanelButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-  }) {
-    return Column(
-      children: [
-        IconButton(
-          icon: Icon(icon, color: Colors.white),
-          iconSize: 30 * fontScale,
-          onPressed: onPressed,
-          tooltip: label,
-        ),
-        Text(label, style: TextStyle(color: Colors.grey, fontSize: 10 * fontScale)),
-      ],
-    );
-  }
-
   Widget _buildTeamArea({
     required String teamName,
     required int score,
@@ -707,7 +703,7 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
       onTap: onTap,
       onLongPress: onUndo, // 길게 눌러서 점수 정정
       child: Container(
-        color: isServing ? baseColor.shade100 : baseColor.shade50.withOpacity(0.5),
+        color: isServing ? baseColor.shade100 : baseColor.shade50.withAlpha(128),
         padding: const EdgeInsets.all(16.0), // 글자가 잘리지 않도록 패딩 추가
         child: FittedBox( // FittedBox를 사용하여 내용이 영역에 맞게 자동 스케일링되도록 함
           fit: BoxFit.contain, // 내용의 비율을 유지하면서 영역 안에 맞춤
