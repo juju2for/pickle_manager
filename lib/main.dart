@@ -20,7 +20,7 @@ class _GameState {
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  // SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky); // 전체 화면 모드를 버튼으로 제어하기 위해 주석 처리
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
@@ -538,6 +538,19 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
     );
   }
 
+  bool _isFullScreen = false;
+
+  void _toggleFullScreen() {
+    setState(() {
+      _isFullScreen = !_isFullScreen;
+    });
+    if (_isFullScreen) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } else {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // 화면 너비에 따라 중앙 패널 너비 동적 조절
@@ -563,75 +576,87 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
           Container(
             width: centerPanelWidth,
             color: Colors.black87,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                // [설정 버튼]
-                _buildCentralPanelButton(
-                  icon: Icons.play_arrow,
-                  label: '시작',
-                  onPressed: _openSettingsDialog,
-                ),
-                // [기록 버튼]
-                _buildCentralPanelButton(
-                  icon: Icons.history,
-                  label: '기록',
-                  onPressed: _showHistoryDialog,
-                ),
-
-                // [세트 스코어]
-                Column(
-                  children: [
-                    Text('$winsA', style: TextStyle(color: Colors.blue, fontSize: 28 * fontScale, fontWeight: FontWeight.bold)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Text('SET ${currentSet}', style: TextStyle(color: Colors.white, fontSize: 14 * fontScale, fontWeight: FontWeight.bold)),
-                    ),
-                    Text('$winsB', style: TextStyle(color: Colors.red, fontSize: 28 * fontScale, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-
-                // [서버 순서]
-                Column(
-                  children: [
-                    Text('SERVER', style: TextStyle(color: Colors.grey, fontSize: 12 * fontScale)),
-                    const SizedBox(height: 5),
-                    CircleAvatar(
-                      backgroundColor: Colors.amber,
-                      radius: 24 * fontScale,
-                      child: Text(
-                        '$serverSequence',
-                        style: TextStyle(fontSize: 28 * fontScale, fontWeight: FontWeight.bold, color: Colors.black),
+            padding: const EdgeInsets.symmetric(vertical: 8.0), // Add some vertical padding
+            child: FittedBox(
+              fit: BoxFit.contain,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // [설정 버튼]
+                  _buildCentralPanelButton(
+                    icon: Icons.play_arrow,
+                    label: '시작',
+                    onPressed: _openSettingsDialog,
+                  ),
+                  const SizedBox(height: 16),
+                  // [기록 버튼]
+                  _buildCentralPanelButton(
+                    icon: Icons.history,
+                    label: '기록',
+                    onPressed: _showHistoryDialog,
+                  ),
+                  const SizedBox(height: 24),
+                  // [세트 스코어]
+                  Column(
+                    children: [
+                      Text('$winsA', style: TextStyle(color: Colors.blue, fontSize: 28 * fontScale, fontWeight: FontWeight.bold)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Text('SET ${currentSet}', style: TextStyle(color: Colors.white, fontSize: 14 * fontScale, fontWeight: FontWeight.bold)),
                       ),
-                    ),
-                  ],
-                ),
-
-                // [음성 토글 버튼]
-                _buildCentralPanelButton(
-                  icon: _isVoiceEnabled ? Icons.volume_up : Icons.volume_off,
-                  label: '음성',
-                  onPressed: () {
-                    setState(() {
-                      _isVoiceEnabled = !_isVoiceEnabled;
-                    });
-                  },
-                ),
-
-                // [되돌리기 버튼]
-                _buildCentralPanelButton(
-                  icon: Icons.undo,
-                  label: '실행취소',
-                  onPressed: _undoLastAction,
-                ),
-
-                // [리셋 버튼]
-                _buildCentralPanelButton(
-                  icon: Icons.refresh,
-                  label: '리셋',
-                  onPressed: _resetGame,
-                ),
-              ],
+                      Text('$winsB', style: TextStyle(color: Colors.red, fontSize: 28 * fontScale, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  // [서버 순서]
+                  Column(
+                    children: [
+                      Text('SERVER', style: TextStyle(color: Colors.grey, fontSize: 12 * fontScale)),
+                      const SizedBox(height: 5),
+                      CircleAvatar(
+                        backgroundColor: Colors.amber,
+                        radius: 24 * fontScale,
+                        child: Text(
+                          '$serverSequence',
+                          style: TextStyle(fontSize: 28 * fontScale, fontWeight: FontWeight.bold, color: Colors.black),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  // [전체화면 토글 버튼]
+                  _buildCentralPanelButton(
+                    icon: _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                    label: '전체화면',
+                    onPressed: _toggleFullScreen,
+                  ),
+                  const SizedBox(height: 16),
+                  // [음성 토글 버튼]
+                  _buildCentralPanelButton(
+                    icon: _isVoiceEnabled ? Icons.volume_up : Icons.volume_off,
+                    label: '음성',
+                    onPressed: () {
+                      setState(() {
+                        _isVoiceEnabled = !_isVoiceEnabled;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  // [되돌리기 버튼]
+                  _buildCentralPanelButton(
+                    icon: Icons.undo,
+                    label: '실행취소',
+                    onPressed: _undoLastAction,
+                  ),
+                  const SizedBox(height: 16),
+                  // [리셋 버튼]
+                  _buildCentralPanelButton(
+                    icon: Icons.refresh,
+                    label: '리셋',
+                    onPressed: _resetGame,
+                  ),
+                ],
+              ),
             ),
           ),
 
