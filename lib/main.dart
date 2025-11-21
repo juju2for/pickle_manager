@@ -88,27 +88,31 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
 
   bool _isVoiceEnabled = true; // 음성 안내 기능 활성화 여부
   bool _isAutoChangeSoundEnabled = true; // 사이드아웃 효과음 활성화 여부
+  String textToSpeak = '';
 
   void _speakScore({bool force = false}) async {
     if (!_isVoiceEnabled && !force) return;
 
+    String textToSpeak;
     final String servingScore = (servingTeam == 'A') ? scoreA.toString() : scoreB.toString();
     final String receivingScore = (servingTeam == 'A') ? scoreB.toString() : scoreA.toString();
     final String serverSequenceNumber = serverSequence.toString();
 
-    String textToSpeak;
+    const numberWords = {
+      '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four',
+      '5': 'Five', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine',
+      '10': 'Ten', '11': 'Eleven', '12': 'Twelve', '13': 'Thirteen', '14': 'Fourteen',
+      '15': 'Fifteen', '16': 'Sixteen', '17': 'Seventeen', '18': 'Eighteen', '19': 'Nineteen', '20': 'Twenty', '21': 'Twenty-one'
+    };
 
     if (force) {
-      // 강제 호출 시에는 숫자로만 말함 (e.g., "10 8 2")
-      textToSpeak = '$servingScore $receivingScore $serverSequenceNumber';
+      // 강제 호출 시에는 숫자로 변환하여 말함 (e.g., "Zero Zero One")
+      final String servingScoreWord = numberWords[servingScore] ?? servingScore;
+      final String receivingScoreWord = numberWords[receivingScore] ?? receivingScore;
+      final String serverSequenceWord = numberWords[serverSequenceNumber] ?? serverSequenceNumber;
+      textToSpeak = '$servingScoreWord $receivingScoreWord $serverSequenceWord';
     } else {
       // 일반 호출 시에는 단어로 변환하여 말함
-      const numberWords = {
-        '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four',
-        '5': 'Five', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine',
-        '10': 'Ten', '11': 'Eleven', '12': 'Twelve', '13': 'Thirteen', '14': 'Fourteen',
-        '15': 'Fifteen', '16': 'Sixteen', '17': 'Seventeen', '18': 'Eighteen', '19': 'Nineteen', '20': 'Twenty', '21': 'Twenty-one'
-      };
       final String servingScoreWord = numberWords[servingScore] ?? servingScore;
       final String receivingScoreWord = numberWords[receivingScore] ?? receivingScore;
       final String serverSequenceWord = serverSequence == 1 ? 'One' : 'Two';
@@ -258,7 +262,14 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
       }
     });
     _playSoundEffect();
-    Future.delayed(const Duration(milliseconds: 500), _speakScore);
+    if (_isAutoChangeSoundEnabled) {
+      flutterTts.speak('Sideout');
+      if (_isVoiceEnabled) {
+        Future.delayed(const Duration(seconds: 1), _speakScore);
+      }
+    } else if (_isVoiceEnabled) {
+      Future.delayed(const Duration(milliseconds: 500), _speakScore);
+    }
   }
 
   // === [Logic] 마지막 행동 되돌리기 ===
@@ -458,12 +469,20 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
                 ),
                 ListTile(
                   leading: Icon(_isVoiceEnabled ? Icons.volume_up : Icons.volume_off),
-                  title: const Text('음성'),
+                  title: const Text('자동 카운터'),
                   onTap: () {
-                    setState(() {
+                    setStateDialog(() { // Use setStateDialog to update the dialog's UI
                       _isVoiceEnabled = !_isVoiceEnabled;
                     });
-                    setStateDialog(() {}); 
+                  },
+                ),
+                ListTile(
+                  leading: Icon(_isAutoChangeSoundEnabled ? Icons.volume_up : Icons.volume_off),
+                  title: const Text('사이드아웃'),
+                  onTap: () {
+                    setStateDialog(() {
+                      _isAutoChangeSoundEnabled = !_isAutoChangeSoundEnabled;
+                    });
                   },
                 ),
                 ListTile(
@@ -580,7 +599,7 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
               title: Text('설정', style: TextStyle(fontSize: 22 * fontScale)),
               content: SafeArea(
                 child: SingleChildScrollView(
-                  child: Column( // Simplified layout for testing
+                  child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       leftSide,
@@ -672,6 +691,7 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
                 // [서버 순서] - 크게
                 GestureDetector(
                   onTap: () => _speakScore(force: true),
+                  onLongPress: () => flutterTts.speak('Sideout'),
                   child: Text(
                     '$serverSequence',
                     style: TextStyle(fontSize: 120 * fontScale, fontWeight: FontWeight.bold, color: Colors.white, height: 1.0),
