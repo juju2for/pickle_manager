@@ -599,8 +599,8 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
               title: Text('설정', style: TextStyle(fontSize: 22 * fontScale)),
               content: SafeArea(
                 child: SingleChildScrollView(
+                  padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       leftSide,
                       const Divider(height: 20),
