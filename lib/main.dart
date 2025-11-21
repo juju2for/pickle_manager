@@ -82,32 +82,39 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
   }
 
   void _playSoundEffect() {
-    if (!_isVoiceEnabled) return;
+    if (!_isAutoChangeSoundEnabled) return;
     _audioPlayer.play(AssetSource('sounds/sideout.mp3'));
   }
 
   bool _isVoiceEnabled = true; // 음성 안내 기능 활성화 여부
+  bool _isAutoChangeSoundEnabled = true; // 사이드아웃 효과음 활성화 여부
 
-  void _speakScore() async {
-    if (!_isVoiceEnabled) return; // 음성 안내가 꺼져있으면 실행하지 않음
+  void _speakScore({bool force = false}) async {
+    if (!_isVoiceEnabled && !force) return;
 
     final String servingScore = (servingTeam == 'A') ? scoreA.toString() : scoreB.toString();
     final String receivingScore = (servingTeam == 'A') ? scoreB.toString() : scoreA.toString();
+    final String serverSequenceNumber = serverSequence.toString();
 
-    // 점수를 영어 단어로 변환 (e.g., 0 -> "Zero")
-    const numberWords = {
-      '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four',
-      '5': 'Five', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine',
-      '10': 'Ten', '11': 'Eleven', '12': 'Twelve', '13': 'Thirteen', '14': 'Fourteen',
-      '15': 'Fifteen', '16': 'Sixteen', '17': 'Seventeen', '18': 'Eighteen', '19': 'Nineteen', '20': 'Twenty', '21': 'Twenty-one'
-    };
+    String textToSpeak;
 
-    final String servingScoreWord = numberWords[servingScore] ?? servingScore;
-    final String receivingScoreWord = numberWords[receivingScore] ?? receivingScore;
-    // 서버 순서는 1 또는 2이므로 간단히 처리
-    final String serverSequenceWord = serverSequence == 1 ? 'One' : 'Two';
+    if (force) {
+      // 강제 호출 시에는 숫자로만 말함 (e.g., "10 8 2")
+      textToSpeak = '$servingScore $receivingScore $serverSequenceNumber';
+    } else {
+      // 일반 호출 시에는 단어로 변환하여 말함
+      const numberWords = {
+        '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four',
+        '5': 'Five', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine',
+        '10': 'Ten', '11': 'Eleven', '12': 'Twelve', '13': 'Thirteen', '14': 'Fourteen',
+        '15': 'Fifteen', '16': 'Sixteen', '17': 'Seventeen', '18': 'Eighteen', '19': 'Nineteen', '20': 'Twenty', '21': 'Twenty-one'
+      };
+      final String servingScoreWord = numberWords[servingScore] ?? servingScore;
+      final String receivingScoreWord = numberWords[receivingScore] ?? receivingScore;
+      final String serverSequenceWord = serverSequence == 1 ? 'One' : 'Two';
+      textToSpeak = '$servingScoreWord $receivingScoreWord $serverSequenceWord';
+    }
 
-    final textToSpeak = '$servingScoreWord $receivingScoreWord $serverSequenceWord'; // 쉼표 제거
     await flutterTts.speak(textToSpeak);
   }
 
@@ -407,7 +414,7 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
   }
 
 
-    // === [UI] 새로운 설정 팝업 ===
+// === [UI] 새로운 설정 팝업 (수정됨) ===
   void _openSettingsDialog() {
     // 임시 변수: 사용자가 '새 게임'을 누르기 전까지의 설정값
     String tempTeamAName = teamAName;
@@ -415,17 +422,23 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
     double tempFontScale = fontScale;
     int tempTotalSets = totalSets;
     int tempTargetScore = targetScore;
-    final view = View.of(context);
-    bool isFullScreen =
-        (MediaQuery.of(context).size.width == view.physicalSize.width / view.devicePixelRatio) &&
-        (MediaQuery.of(context).size.height == view.physicalSize.height / view.devicePixelRatio);
-
+    final mediaQuery = MediaQuery.of(context);
+    
+    // 전체화면 여부 체크 로직 (웹에서는 브라우저 정책상 완벽하지 않을 수 있음)
+    bool isFullScreen = false; 
+    try {
+         // 안전장치 추가
+         isFullScreen = (mediaQuery.size.width == mediaQuery.size.width * mediaQuery.devicePixelRatio);
+    } catch (e) {
+        isFullScreen = false;
+    }
 
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
+            // --- 왼쪽/오른쪽 패널 내용은 그대로 유지 ---
             final Widget leftSide = Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -450,7 +463,7 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
                     setState(() {
                       _isVoiceEnabled = !_isVoiceEnabled;
                     });
-                    setStateDialog(() {}); // 아이콘 변경을 위해 팝업만 리빌드
+                    setStateDialog(() {}); 
                   },
                 ),
                 ListTile(
@@ -467,132 +480,142 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
             final Widget rightSide = Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextFormField(
-                  initialValue: tempTeamAName,
-                  decoration: const InputDecoration(labelText: '팀 A 이름'),
-                  onChanged: (value) => tempTeamAName = value,
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: TextFormField(
+                    initialValue: tempTeamAName,
+                    decoration: const InputDecoration(labelText: '팀 A 이름'),
+                    onChanged: (value) => tempTeamAName = value,
+                  ),
                 ),
-                TextFormField(
-                  initialValue: tempTeamBName,
-                  decoration: const InputDecoration(labelText: '팀 B 이름'),
-                  onChanged: (value) => tempTeamBName = value,
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: TextFormField(
+                    initialValue: tempTeamBName,
+                    decoration: const InputDecoration(labelText: '팀 B 이름'),
+                    onChanged: (value) => tempTeamBName = value,
+                  ),
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  children: [
-                    const Text('글자 크기:'),
-                    Expanded(
-                      child: Slider(
-                        value: tempFontScale,
-                        min: 0.5,
-                        max: 2.5,
-                        divisions: 20,
-                        label: tempFontScale.toStringAsFixed(1),
-                        onChanged: (value) {
-                          setStateDialog(() {
-                            tempFontScale = value;
-                          });
-                        },
+                // 글자 크기 슬라이더
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Row(
+                    children: [
+                      Text('글자 크기:', style: TextStyle(fontSize: 16 * fontScale)),
+                      Expanded(
+                        child: Slider(
+                          value: tempFontScale,
+                          min: 0.5,
+                          max: 2.5,
+                          divisions: 20,
+                          label: tempFontScale.toStringAsFixed(1),
+                          onChanged: (value) {
+                            setStateDialog(() {
+                              tempFontScale = value;
+                            });
+                          },
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                Row(
-                  children: [
-                    const Text('세트 설정:'),
-                    const SizedBox(width: 20),
-                    DropdownButton<int>(
-                      value: tempTotalSets,
-                      items: [1, 3, 5, 7, 9].map((int value) {
-                        return DropdownMenuItem<int>(
-                          value: value,
-                          child: Text('$value 세트'),
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        setStateDialog(() {
-                          tempTotalSets = newValue!;
-                        });
-                      },
-                    ),
-                  ],
+                // 세트 설정 및 점수 설정
+                 Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Row(
+                    children: [
+                      Text('세트 설정:', style: TextStyle(fontSize: 16 * fontScale)),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: DropdownButton<int>(
+                          isExpanded: true,
+                          value: tempTotalSets,
+                          items: [1, 3, 5, 7, 9].map((int value) {
+                            return DropdownMenuItem<int>(
+                              value: value,
+                              child: Text('$value 세트', style: TextStyle(fontSize: 16 * fontScale)),
+                            );
+                          }).toList(),
+                          onChanged: (newValue) {
+                            setStateDialog(() {
+                              tempTotalSets = newValue!;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                Row(
-                  children: [
-                    const Text('세트 점수:'),
-                    const SizedBox(width: 20),
-                    DropdownButton<int>(
-                      value: tempTargetScore,
-                      items: [7, 11, 21].map((int value) {
-                        return DropdownMenuItem<int>(
-                          value: value,
-                          child: Text('$value 점'),
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        setStateDialog(() {
-                          tempTargetScore = newValue!;
-                        });
-                      },
-                    ),
-                  ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Row(
+                    children: [
+                      Text('세트 점수:', style: TextStyle(fontSize: 16 * fontScale)),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: DropdownButton<int>(
+                          isExpanded: true,
+                          value: tempTargetScore,
+                          items: [7, 11, 21].map((int value) {
+                            return DropdownMenuItem<int>(
+                              value: value,
+                              child: Text('$value 점', style: TextStyle(fontSize: 16 * fontScale)),
+                            );
+                          }).toList(),
+                          onChanged: (newValue) {
+                            setStateDialog(() {
+                              tempTargetScore = newValue!;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             );
 
             return AlertDialog(
               title: Text('설정', style: TextStyle(fontSize: 22 * fontScale)),
-              content: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.8, // 너비 확장
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    if (constraints.maxWidth < 500) { // 좁은 화면용 레이아웃
-                      return SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            leftSide,
-                            const Divider(height: 20),
-                            rightSide,
-                          ],
-                        ),
-                      );
-                    } else { // 넓은 화면용 레이아웃
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: leftSide,
-                          ),
-                          const VerticalDivider(),
-                          Expanded(
-                            flex: 2,
-                            child: rightSide,
-                          ),
-                        ],
-                      );
-                    }
-                  },
+              content: SafeArea(
+                child: SingleChildScrollView(
+                  child: Column( // Simplified layout for testing
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      leftSide,
+                      const Divider(height: 20),
+                      rightSide,
+                    ],
+                  ),
                 ),
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('닫기', style: TextStyle(fontSize: 16 * fontScale)),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      teamAName = tempTeamAName;
-                      teamBName = tempTeamBName;
-                      fontScale = tempFontScale;
-                      totalSets = tempTotalSets;
-                      targetScore = tempTargetScore;
-                    });
-                    Navigator.pop(context);
-                    _resetGame();
-                  },
-                  child: Text('새 게임', style: TextStyle(fontSize: 16 * fontScale)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text('닫기', style: TextStyle(fontSize: 16 * fontScale)),
+                      ),
+                    ),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            teamAName = tempTeamAName;
+                            teamBName = tempTeamBName;
+                            fontScale = tempFontScale;
+                            totalSets = tempTotalSets;
+                            targetScore = tempTargetScore;
+                          });
+                          Navigator.pop(context);
+                          _resetGame();
+                        },
+                        child: Text('새 게임', style: TextStyle(fontSize: 16 * fontScale)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             );
@@ -647,9 +670,12 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
                 ),
 
                 // [서버 순서] - 크게
-                Text(
-                  '$serverSequence',
-                  style: TextStyle(fontSize: 120 * fontScale, fontWeight: FontWeight.bold, color: Colors.white, height: 1.0),
+                GestureDetector(
+                  onTap: () => _speakScore(force: true),
+                  child: Text(
+                    '$serverSequence',
+                    style: TextStyle(fontSize: 120 * fontScale, fontWeight: FontWeight.bold, color: Colors.white, height: 1.0),
+                  ),
                 ),
 
                 // [아이콘 버튼들]
@@ -658,14 +684,14 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
                   children: [
                     // [되돌리기 버튼]
                     IconButton(
-                      icon: Icon(Icons.undo, color: Colors.white, size: 40 * fontScale),
+                      icon: Icon(Icons.undo, color: Colors.white, size: 10 * fontScale),
                       onPressed: _undoLastAction,
                       tooltip: '실행취소',
                     ),
 
                     // [설정 버튼]
                     IconButton(
-                      icon: Icon(Icons.settings, color: Colors.white, size: 50 * fontScale),
+                      icon: Icon(Icons.settings, color: Colors.white, size: 25 * fontScale),
                       onPressed: _openSettingsDialog, // 새로운 설정 팝업 호출
                       tooltip: '설정',
                     ),
