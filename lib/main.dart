@@ -259,16 +259,16 @@ class _ScoreBoardPageState extends State<ScoreBoardPage> {
       } else {
         serverSequence = 1;
         servingTeam = (servingTeam == 'A') ? 'B' : 'A';
+        // Plays sideout.mp3 only when servingTeam changes
+        _playSoundEffect(); // Always play sound when servingTeam changes
+        if (_isAutoChangeSoundEnabled) {
+          flutterTts.speak('Sideout');
+        }
       }
     });
-    _playSoundEffect();
-    if (_isAutoChangeSoundEnabled) {
-      flutterTts.speak('Sideout');
-      if (_isVoiceEnabled) {
-        Future.delayed(const Duration(seconds: 1), _speakScore);
-      }
-    } else if (_isVoiceEnabled) {
-      Future.delayed(const Duration(milliseconds: 500), _speakScore);
+    // 사이드아웃 음성 안내 후 점수 안내를 위해 딜레이 추가
+    if (_isVoiceEnabled) {
+      Future.delayed(const Duration(seconds: 1), _speakScore);
     }
   }
 
